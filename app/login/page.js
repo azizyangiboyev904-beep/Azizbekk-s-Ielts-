@@ -27,7 +27,7 @@ function LoginForm() {
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
         <div className="shell-brand" style={{ marginBottom: 20 }}>
-          <div className="brand-mark">26</div>
+          <div className="brand-mark">✓</div>
           <div>
             <div className="topbar-title">IELTS Pro</div>
             <div className="topbar-sub">Private access</div>
