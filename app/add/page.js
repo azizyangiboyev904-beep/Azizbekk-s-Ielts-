@@ -29,7 +29,7 @@ export default function AddTest() {
     <div className="shell">
       <header className="shell-header">
         <div className="shell-brand">
-          <div className="brand-mark">26</div>
+          <div className="brand-mark">✓</div>
           <div className="topbar-title">Add a test</div>
         </div>
         <a href="/" className="btn btn-ghost">← Back to library</a>
