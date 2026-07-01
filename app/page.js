@@ -1,66 +1,99 @@
 "use client";
-import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import "../theme.css";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getTests, deleteTest, exportAllTests, importAllTests } from "../lib/storage";
+import "./theme.css";
 
-function LoginForm() {
-  const [code, setCode] = useState("");
-  const [err, setErr] = useState(false);
-  const router = useRouter();
-  const params = useSearchParams();
+export default function Dashboard() {
+  const [tests, setTests] = useState([]);
+  const [mounted, setMounted] = useState(false);
 
-  async function submit(e) {
-    e.preventDefault();
-    const res = await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    });
-    if (res.ok) {
-      router.push(params.get("next") || "/");
-    } else {
-      setErr(true);
-    }
+  useEffect(() => {
+    setTests(getTests());
+    setMounted(true);
+  }, []);
+
+  function handleDelete(id) {
+    if (!confirm("Delete this test? This can't be undone.")) return;
+    deleteTest(id);
+    setTests(getTests());
+  }
+
+  function handleImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        importAllTests(reader.result);
+        setTests(getTests());
+        alert("Backup imported.");
+      } catch (err) {
+        alert("Couldn't read that file: " + err.message);
+      }
+    };
+    reader.readAsText(file);
   }
 
   return (
-    <div className="login-wrap">
-      <form className="login-card" onSubmit={submit}>
-        <div className="shell-brand" style={{ marginBottom: 20 }}>
+    <div className="shell">
+      <header className="shell-header">
+        <div className="shell-brand">
           <div className="brand-mark">✓</div>
           <div>
             <div className="topbar-title">IELTS Pro</div>
-            <div className="topbar-sub">Private access</div>
+            <div className="topbar-sub">Your private test library</div>
           </div>
         </div>
-        <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 8 }}>
-          Passcode
-        </label>
-        <input
-          className="input"
-          type="password"
-          autoFocus
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="Enter your passcode"
-        />
-        {err && (
-          <div style={{ color: "var(--bad)", fontSize: 13, marginTop: 10 }}>
-            Wrong passcode. Try again.
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-ghost" onClick={exportAllTests}>Export backup</button>
+          <label className="btn btn-ghost" style={{ cursor: "pointer" }}>
+            Import backup
+            <input type="file" accept="application/json" onChange={handleImport} hidden />
+          </label>
+          <Link href="/add" className="btn btn-primary">+ Add test</Link>
+        </div>
+      </header>
+
+      <div className="shell-body">
+        <div className="page-title">Your tests</div>
+        <div className="page-sub">
+          Paste in HTML from an existing test and it'll be reformatted into this design,
+          ready to solve. Saved locally in this browser — use "Export backup" any time to
+          keep a copy of your data.
+        </div>
+
+        {mounted && tests.length === 0 && (
+          <div className="empty-state card">
+            No tests yet. Click <b>+ Add test</b> to convert your first one.
           </div>
         )}
-        <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 18 }}>
-          Enter
-        </button>
-      </form>
-    </div>
-  );
-}
 
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <LoginForm />
-    </Suspense>
+        <div className="test-grid">
+          {tests.map((t) => (
+            <div key={t.id} className="test-card">
+              <Link href={`/test/${t.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <div className="test-card-title">{t.title}</div>
+                <div className="test-card-meta">
+                  {t.passages?.length || 0} passage(s) · {t.questions?.length || 0} question(s)
+                </div>
+              </Link>
+              <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+                <Link href={`/edit/${t.id}`} className="btn btn-ghost" style={{ padding: "6px 14px", fontSize: 12 }}>
+                  Edit
+                </Link>
+                <button
+                  className="btn btn-ghost"
+                  style={{ padding: "6px 14px", fontSize: 12, color: "var(--bad)" }}
+                  onClick={() => handleDelete(t.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
